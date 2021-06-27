@@ -2,20 +2,21 @@ extends KinematicBody2D
 
 enum TILE { SKY = -1, FLOOR, FLOOR_SOLID, HOLE_DMG1, HOLE_DMG2, LADDER, RAILS, HOLE }
 
-var speed: int = 800
+var speed: int = 300
 var vel : Vector2 = Vector2()
 var isOnLadder : bool = false
 var isOnRails: bool = false
 var isFalling: bool = false
 var isInHole: bool = false
 var isGoingLeft: bool = false
+var isGoingUp: bool = false
 var isDigging: bool = false
 var digTime: float = 0.25
 var digCount: float = 0.00
 var playerStartPos: Vector2 = Vector2()
 
 const railwayHangDist: int = 64
-const distanceAdjustment: int = 65 
+const distanceAdjustment: int = 60 
 
 var tile: int = -1
 
@@ -64,33 +65,44 @@ func getTileUpDown(isUp):
 	
 	var lenCheck = distanceAdjustment
 	var prevTile = tile
+	var pos = self.position
+	var adjustY = 49
 	
 	if isFalling == true: # Make sure we did not collide with anything that has collisions on such as the floor or hole
 		if is_on_floor():
 			isFalling = false
+			print("landed")
 			return
+	else:
+		pos.y += adjustY
 			
 	if isOnRails == true && isUp == false: # Drop off the Rails!
 		isFalling = true
 		isOnRails = false
 		return
 		
-	if prevTile == TILE.LADDER && isOnLadder == true: # Ladder
-		lenCheck = 4  # on the Ladder.  Dont look to see what is above or below. 
-	
-	var pos = self.position
-	
-	if isUp == true:
-		pos.y -= lenCheck
-	else:
-		pos.y += lenCheck
-		
-	if isFalling == false:
-		pos.y += 64
+	if prevTile != TILE.LADDER && isOnLadder == false:
+		if isUp == true:
+			pos.y -= lenCheck
+		else:
+			pos.y += lenCheck
 		
 	var tileVector = tilemap.world_to_map(pos)
 	tile = tilemap.get_cellv(tileVector)
 	print(tile)
+	
+	if isFalling && tile == TILE.LADDER:
+		print("Landed on Ladder")
+		isOnLadder = true
+		isFalling = false
+		
+		if isGoingUp == false:
+			print("Adjusting")
+			isGoingUp = true
+			self.position.y += 10
+			var xDist = sprite.global_position.x - tilemap.map_to_world(tileVector).x
+			if abs(xDist) > 1:  #Adjust the player to be in the right position on the railings.
+				self.position.x -= (xDist - railwayHangDist /2)
 	
 	if isInHole == true:
 		isFalling = false
@@ -151,16 +163,22 @@ func getTileLeftRight(isLeft):
 	tileVector = tilemap.world_to_map(pos)
 	tile = tilemap.get_cellv(tileVector)
 	
+	if prevTile == TILE.LADDER && tile == TILE.SKY:
+		if isLeft:
+			self.position.x -= distanceAdjustment / 2
+		else:
+			self.position.x += distanceAdjustment / 2
+		
+		isFalling = true
+		return
+	
 	if tile == TILE.SKY: # SKY
 		if isInHole:
 			return
-		
-		if prevTile == TILE.LADDER:
-			if isLeft:
-				self.position.x -= distanceAdjustment / 2
-			else:
-				self.position.x += distanceAdjustment / 2
 			
+		print("Its the sky")
+		print(prevTile);
+		print("-----------------")
 		isFalling = true
 		isOnLadder = false
 		isOnRails = false
@@ -235,6 +253,7 @@ func _process(delta):
 					$AnimationPlayer.play("LeftDirection")
 			elif Input.is_action_pressed("ui_down"):
 				print('down')
+				isGoingUp = false
 				getTileUpDown(false)
 				
 				if tile == TILE.LADDER:
@@ -242,6 +261,7 @@ func _process(delta):
 					$AnimationPlayer.play("DownDirection")
 
 			elif Input.is_action_pressed("ui_up"):
+				isGoingUp = true
 				getTileUpDown(true)
 				
 				if tile == TILE.LADDER:
@@ -253,7 +273,10 @@ func _process(delta):
 				elif isOnLadder:
 					$AnimationPlayer.play("idle Ladder")
 				else:
-					$AnimationPlayer.play("idle")
+					if isGoingLeft:
+						$AnimationPlayer.play("idleLeft")
+					else:
+						$AnimationPlayer.play("idleRight")
 		
 		if Input.is_action_pressed("ui_dig"):
 			startDigging()
