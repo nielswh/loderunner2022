@@ -14,10 +14,6 @@ var isDigging: bool = false
 var digTime: float = 0.25
 var digCount: float = 0.00
 var playerStartPos: Vector2 = Vector2()
-
-const railwayHangDist: int = 64
-const distanceAdjustment: int = 60 
-
 var tile: int = -1
 
 onready var sprite: Sprite = get_node("Sprite")
@@ -29,6 +25,7 @@ func digHole(isLeftDirection, digTileId):
 	if isOnLadder || isOnRails: # Can't Dig when on a ladder or rails
 		return
 	
+	var distanceAdjustment: int = 40 
 	var pos = self.position
 	var adjustBy = 1
 	var digAdjust = distanceAdjustment * 0.50
@@ -63,46 +60,35 @@ func digHole(isLeftDirection, digTileId):
 
 func getTileUpDown(isUp):
 	
-	var lenCheck = distanceAdjustment
 	var prevTile = tile
-	var pos = self.position
-	var adjustY = 49
+	var x = int(self.position.x) / 64
+	var y = int(self.position.y) / 64
 	
 	if isFalling == true: # Make sure we did not collide with anything that has collisions on such as the floor or hole
 		if is_on_floor():
 			isFalling = false
-			print("landed")
 			return
-	else:
-		pos.y += adjustY
 			
 	if isOnRails == true && isUp == false: # Drop off the Rails!
 		isFalling = true
 		isOnRails = false
 		return
-		
-	if prevTile != TILE.LADDER && isOnLadder == false:
-		if isUp == true:
-			pos.y -= lenCheck
-		else:
-			pos.y += lenCheck
-		
-	var tileVector = tilemap.world_to_map(pos)
-	tile = tilemap.get_cellv(tileVector)
-	print(tile)
+	
+	if isUp:
+		y += 0
+	else:
+		y += 1
+	
+	tile = tilemap.get_cell(x, y)
 	
 	if isFalling && tile == TILE.LADDER:
-		print("Landed on Ladder")
 		isOnLadder = true
 		isFalling = false
 		
 		if isGoingUp == false:
-			print("Adjusting")
-			isGoingUp = true
-			self.position.y += 10
-			var xDist = sprite.global_position.x - tilemap.map_to_world(tileVector).x
-			if abs(xDist) > 1:  #Adjust the player to be in the right position on the railings.
-				self.position.x -= (xDist - railwayHangDist /2)
+			isGoingUp = true # We don't want to adjust adjus this values again
+			var remainder = int(self.position.y) % 64
+			self.position.y = int(self.position.y) + remainder + 6
 	
 	if isInHole == true:
 		isFalling = false
@@ -113,61 +99,67 @@ func getTileUpDown(isUp):
 			isFalling = true
 			isOnLadder = false
 			isOnRails = false
+		else:
+			self.position.y = (y * 64) + 28
+			isFalling = false
+			isOnLadder = false
+			isOnRails = false
 	elif tile == TILE.LADDER: # LADDER
 		if isOnLadder == false:  # Only adjust if the first time on the ladder
-			var xDist = sprite.global_position.x - tilemap.map_to_world(tileVector).x
-			if abs(xDist) > 1:  #Adjust the player to be in the right position on the railings.
-				self.position.x -= (xDist - railwayHangDist /2)
+			self.position.x = (x * 64) + 32
 				
 		isFalling = false
 		isOnLadder = true
 		isOnRails = false
 	elif tile == TILE.RAILS: # RAILING
-		
-		var yDist = tilemap.map_to_world(tileVector).y - sprite.global_position.y
-		
 		if (prevTile == TILE.SKY) && isFalling == true:  # Fell onto the railing
-			self.position.y += yDist + (railwayHangDist * .18)
+			self.position.y = (y * 64) + 14
 		
 		isOnRails = true
 		isFalling = false
 		
 	elif tile == TILE.HOLE: #HOLE
 		if prevTile == TILE.SkY && isFalling == true:
-			self.position.y += 126  # Drop into the hole
+			self.position.y = (y * 64)  # Drop into the hole
 			isInHole = true
 	else:
+		self.position.y = (y * 64) - 32
 		isFalling = false
 		isOnLadder = false
 		isOnRails = false
 	
 func getTileLeftRight(isLeft):
 	var prevTile = tile
-	var pos = self.position	
-	var tileVector = tilemap.world_to_map(pos)
-	tile = tilemap.get_cellv(tileVector)
+	
+	var x = int(self.position.x) / 64
+	var y = int(self.position.y) / 64
+	
+	tile = tilemap.get_cell(x, y)
 	
 	if tile == TILE.RAILS: # RAILS
-		var yDist = sprite.global_position.y - tilemap.map_to_world(tileVector).y
-		if yDist != railwayHangDist:  #Adjust the player to be in the right position on the railings.
-			self.position.y += (railwayHangDist * 0.20)- yDist
+		self.position.y = (y * 64) + 14
 			
 		isFalling = false
 		isOnLadder= false
 		isOnRails = true
 		return
+		
+	if tile == TILE.FLOOR:
+		var adjustedY = (y * 64) + 32
+	
+		if (float(adjustedY) != position.y):
+			self.position.y = (y * 64) + 32
 	
 	if isOnLadder == false && isOnRails == false:
-		pos.y += distanceAdjustment	
+		y += 1
 		
-	tileVector = tilemap.world_to_map(pos)
-	tile = tilemap.get_cellv(tileVector)
+	tile = tilemap.get_cell(x, y)
 	
 	if prevTile == TILE.LADDER && tile == TILE.SKY:
 		if isLeft:
-			self.position.x -= distanceAdjustment / 2
+			self.position.x -= 32
 		else:
-			self.position.x += distanceAdjustment / 2
+			self.position.x += 32
 		
 		isFalling = true
 		return
@@ -175,10 +167,7 @@ func getTileLeftRight(isLeft):
 	if tile == TILE.SKY: # SKY
 		if isInHole:
 			return
-			
-		print("Its the sky")
-		print(prevTile);
-		print("-----------------")
+
 		isFalling = true
 		isOnLadder = false
 		isOnRails = false
@@ -192,21 +181,16 @@ func getTileLeftRight(isLeft):
 		isOnRails = false
 		
 	if tile == TILE.RAILS: # RAILS
-		var yDist = sprite.global_position.y - tilemap.map_to_world(tileVector).y
-		if yDist != railwayHangDist:   #Adjust the player to be in the right position on the railings.
-			self.position.y += railwayHangDist - yDist
+		self.position.y = (y * 64)
 			
 		isFalling = false
 		isOnLadder= false
 		isOnRails = true
 		
-	if tile == TILE.HOLE: # HOLE
-		if isLeft:
-			self.position.x -= railwayHangDist / 4
-		else:
-			self.position.x += railwayHangDist / 4
-			
-		self.position.y += railwayHangDist
+	
+		
+	if tile == TILE.HOLE: # HOLE	
+		self.position.y = (y * 64)
 		
 		isInHole = true
 		isFalling = true
@@ -226,7 +210,6 @@ func _process(delta):
 	vel.y = 0
 	
 	if isFalling == true:
-		print('falling')
 		getTileUpDown(false)
 		vel.y += speed
 	else:
@@ -252,7 +235,6 @@ func _process(delta):
 				else:
 					$AnimationPlayer.play("LeftDirection")
 			elif Input.is_action_pressed("ui_down"):
-				print('down')
 				isGoingUp = false
 				getTileUpDown(false)
 				
@@ -308,8 +290,6 @@ func startDigging():
 	timer.start()
 
 func _on_Timer_timeout():
-	print(digCount)
-	
 	if isDigging:
 		digCount += digTime
 		if digCount < 0.75: 
@@ -321,10 +301,9 @@ func _on_Timer_timeout():
 
 
 func _on_TileMap_onHoldReset():
-	var pos = self.position
-	pos.y += railwayHangDist / 2
-	var tileVector = tilemap.world_to_map(pos)
-	var playerOnTile = tilemap.get_cellv(tileVector)
+	var x = int(self.position.x) / 64
+	var y = int(self.position.y) / 64
+	var playerOnTile = tilemap.get_cell(x, y)
 	
 	if (playerOnTile == TILE.FLOOR):
 		print("PLAYER WAS CRUSHED!")
