@@ -1,10 +1,10 @@
 [gd_scene load_steps=16 format=2]
 
-[ext_resource path="res://assets/Rpg Character Sprite Sheet Generator.png" type="Texture" id=1]
+[ext_resource path="res://assets/character_maleAdventurer_sheetHD.png" type="Texture" id=1]
 [ext_resource path="res://Player.gd" type="Script" id=2]
 
 [sub_resource type="RectangleShape2D" id=1]
-extents = Vector2( 28.2148, 36.395 )
+extents = Vector2( 19.9741, 27.8989 )
 
 [sub_resource type="Animation" id=2]
 resource_name = "DownDirection"
@@ -20,7 +20,7 @@ tracks/0/keys = {
 "times": PoolRealArray( 0.1, 0.2, 0.3 ),
 "transitions": PoolRealArray( 1, 1, 1 ),
 "update": 1,
-"values": [ 9, 10, 11 ]
+"values": [ 5, 6, 33 ]
 }
 
 [sub_resource type="Animation" id=3]
@@ -71,7 +71,7 @@ tracks/0/keys = {
 "times": PoolRealArray( 0, 0.1, 0.2, 0.3, 0.4, 0.5 ),
 "transitions": PoolRealArray( 1, 1, 1, 1, 1, 1 ),
 "update": 1,
-"values": [ 3, 4, 5, 3, 4, 5 ]
+"values": [ 36, 37, 38, 39, 40, 41 ]
 }
 
 [sub_resource type="Animation" id=6]
@@ -119,7 +119,7 @@ tracks/0/keys = {
 "times": PoolRealArray( 0, 0.1, 0.2, 0.3, 0.4, 0.5 ),
 "transitions": PoolRealArray( 1, 1, 1, 1, 1, 1 ),
 "update": 1,
-"values": [ 6, 7, 8, 6, 7, 8 ]
+"values": [ 36, 37, 38, 39, 40, 41 ]
 }
 
 [sub_resource type="Animation" id=9]
@@ -134,7 +134,7 @@ tracks/0/keys = {
 "times": PoolRealArray( 0.1, 0.2, 0.3 ),
 "transitions": PoolRealArray( 1, 1, 1 ),
 "update": 1,
-"values": [ 9, 10, 11 ]
+"values": [ 5, 6, 33 ]
 }
 
 [sub_resource type="Animation" id=10]
@@ -182,7 +182,7 @@ tracks/0/keys = {
 "times": PoolRealArray( 0.1 ),
 "transitions": PoolRealArray( 1 ),
 "update": 1,
-"values": [ 1 ]
+"values": [ 0 ]
 }
 
 [sub_resource type="Animation" id=13]
@@ -198,7 +198,7 @@ tracks/0/keys = {
 "times": PoolRealArray( 0.1 ),
 "transitions": PoolRealArray( 1 ),
 "update": 1,
-"values": [ 2 ]
+"values": [ 0 ]
 }
 
 [node name="Player" type="KinematicBody2D"]
@@ -207,13 +207,13 @@ collision_mask = 13
 script = ExtResource( 2 )
 
 [node name="Sprite" type="Sprite" parent="."]
-scale = Vector2( 0.5, 0.5 )
 texture = ExtResource( 1 )
-hframes = 3
-vframes = 4
+hframes = 9
+vframes = 5
+frame = 5
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2( -1.74802, -1.24294 )
+position = Vector2( -0.499454, 2.49718 )
 shape = SubResource( 1 )
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]

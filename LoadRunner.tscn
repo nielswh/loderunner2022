@@ -112,7 +112,7 @@ points = PoolVector2Array( 0, 0, 64, 0, 64, 64, 0, 64 )
 5/shapes = [  ]
 5/z_index = 0
 
-[node name="MainScene" type="Node2D"]
+[node name="Scene" type="Node2D"]
 
 [node name="Background_01" type="Sprite" parent="."]
 position = Vector2( 1024.87, 594.787 )
@@ -128,12 +128,15 @@ script = ExtResource( 3 )
 
 [node name="Player" parent="." instance=ExtResource( 1 )]
 position = Vector2( 554, 416 )
+collision_mask = 3
 
 [node name="Timer" type="Timer" parent="."]
 autostart = true
 
 [node name="Enemy" parent="." instance=ExtResource( 5 )]
-position = Vector2( 1568, 416 )
+position = Vector2( 1566, 416 )
+collision_layer = 4
+collision_mask = 3
 
 [connection signal="onHoldReset" from="TileMap" to="Player" method="_on_TileMap_onHoldReset"]
 [connection signal="timeout" from="Timer" to="TileMap" method="_on_Timer_timeout"]

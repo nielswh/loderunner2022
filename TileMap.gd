@@ -10,14 +10,12 @@ var holesList = []
 var holesCreated: int = 0
 onready var timer = self.get_parent().get_node("Timer")
 
-
-
 # Declare member variables here. Examples:
 # var a = 2
 # var b = "text"
 
-func addCellToHoleList(tileVector):
-	holesList.append({"tileVector": tileVector, "created": secondsCount})
+func addCellToHoleList(x, y):
+	holesList.append({"x": x, "y": y, "created": secondsCount})
 	holesCreated += 1 
 	
 
@@ -38,11 +36,11 @@ func _on_Timer_timeout():
 	for hole in holesList:
 		
 		if secondsCount > hole["created"] + holeReset: 
-			self.set_cellv(hole["tileVector"], TILE.FLOOR)
+			self.set_cell(hole["x"],  hole["y"], TILE.FLOOR)
 			holesToReset.insert(0, index) # Make sure to add to front of array so we can remove from highest to lowest
 			emit_signal("onHoldReset")
 		elif secondsCount > hole["created"] + (holeReset - 0.5): # Start to fill in hwn their is 1 second left
-			self.set_cellv(hole["tileVector"], TILE.HOLE_DMG1)
+			self.set_cell(hole["x"],  hole["y"], TILE.HOLE_DMG1)
 		index += 1
 	
 	if holesToReset.empty() == false:	

@@ -7,7 +7,7 @@ enum DIRECTION { IDLE = 0, LEFT, RIGHT, UP, DOWN }
 # var b = "text"
 onready var player : KinematicBody2D = null
 var moveEnemy = false
-var isOnLadder : bool = false
+var isOnLadder: bool = false
 var isOnRails: bool = false
 var isFalling: bool = false
 var isInHole: bool = false
@@ -17,6 +17,10 @@ var vel : Vector2 = Vector2()
 var tile: int = -1
 var changeXDirAt: int = -1
 var changeYDirAt: int = -1
+
+const SIZE: int = 64
+const HALF_SIZE: int = SIZE / 2
+const QTR_SIZE: int = 14
 
 onready var tilemap: TileMap = get_parent().get_node("TileMap")
 onready var sprite: Sprite = get_node("Sprite")
@@ -31,8 +35,8 @@ func _ready():
 func getTileUpDown(isUp):
 	
 	var prevTile = tile
-	var x = int(self.position.x) / 64
-	var y = int(self.position.y) / 64
+	var x = int(self.position.x) / SIZE
+	var y = int(self.position.y) / SIZE
 	
 	if isFalling == true: # Make sure we did not collide with anything that has collisions on such as the floor or hole
 		if is_on_floor():
@@ -44,9 +48,7 @@ func getTileUpDown(isUp):
 		isOnRails = false
 		return
 	
-	if isUp:
-		y += 0
-	else:
+	if not isUp:
 		y += 1
 	
 	tile = tilemap.get_cell(x, y)
@@ -65,30 +67,30 @@ func getTileUpDown(isUp):
 			isOnLadder = false
 			isOnRails = false
 		else:
-			self.position.y = (y * 64) + 28
+			self.position.y = (y * SIZE) + 28
 			isFalling = false
 			isOnLadder = false
 			isOnRails = false
 	elif tile == TILE.LADDER: # LADDER
 		if isOnLadder == false:  # Only adjust if the first time on the ladder
-			self.position.x = (x * 64) + 32
+			self.position.x = (x * SIZE) + HALF_SIZE
 				
 		isFalling = false
 		isOnLadder = true
 		isOnRails = false
 	elif tile == TILE.RAILS: # RAILING
 		if (prevTile == TILE.SKY) && isFalling == true:  # Fell onto the railing
-			self.position.y = (y * 64) + 14
+			self.position.y = (y * SIZE) + QTR_SIZE
 		
 		isOnRails = true
 		isFalling = false
 		
 	elif tile == TILE.HOLE: #HOLE
 		if prevTile == TILE.SkY && isFalling == true:
-			self.position.y = (y * 64)  # Drop into the hole
+			self.position.y = (y * SIZE)  # Drop into the hole
 			isInHole = true
 	else:
-		self.position.y = (y * 64) - 32
+		self.position.y = (y * SIZE) - HALF_SIZE
 		isFalling = false
 		isOnLadder = false
 		isOnRails = false
@@ -96,35 +98,35 @@ func getTileUpDown(isUp):
 func getTileLeftRight(isLeft):
 	var prevTile = tile
 	
-	var x = int(self.position.x) / 64
-	var y = int(self.position.y) / 64
+	var x = int(self.position.x) / SIZE
+	var y = int(self.position.y) / SIZE
 	
 	tile = tilemap.get_cell(x, y)
 	
 	if tile == TILE.RAILS: # RAILS
-		self.position.y = (y * 64) + 14
+		self.position.y = (y * SIZE) + QTR_SIZE
 			
 		isFalling = false
 		isOnLadder= false
 		isOnRails = true
 		return
 		
-	if tile == TILE.FLOOR:
-		var adjustedY = (y * 64) + 32
-	
-		if (float(adjustedY) != position.y):
-			self.position.y = (y * 64) + 32
-	
 	if isOnLadder == false && isOnRails == false:
 		y += 1
 		
 	tile = tilemap.get_cell(x, y)
 	
+	if tile == TILE.FLOOR:
+		var adjustedY = (y * SIZE) - HALF_SIZE
+	
+		if float(adjustedY) != self.position.y:
+			self.position.y = adjustedY
+	
 	if prevTile == TILE.LADDER && tile == TILE.SKY:
 		if isLeft:
-			self.position.x -= 32
+			self.position.x -= HALF_SIZE
 		else:
-			self.position.x += 32
+			self.position.x += HALF_SIZE
 		
 		isFalling = true
 		return
@@ -146,14 +148,14 @@ func getTileLeftRight(isLeft):
 		isOnRails = false
 		
 	if tile == TILE.RAILS: # RAILS
-		self.position.y = (y * 64)
+		self.position.y = (y * SIZE)
 			
 		isFalling = false
 		isOnLadder= false
 		isOnRails = true
 		
 	if tile == TILE.HOLE: # HOLE	
-		self.position.y = (y * 64)
+		self.position.y = (y * SIZE)
 		
 		isInHole = true
 		isFalling = true
@@ -175,23 +177,26 @@ func _process(delta):
 			return
 		
 		if currentDirection == DIRECTION.LEFT:
+			$AnimationPlayer.play("LeftDirection")
 			vel.x -= speed
 			getTileLeftRight(true)
 		elif currentDirection == DIRECTION.RIGHT:
+			$AnimationPlayer.play("LeftDirection")
 			vel.x += speed
 			getTileLeftRight(false)
 		elif currentDirection == DIRECTION.UP:
-			
+			$AnimationPlayer.play("Ladder")
 			vel.y -= speed
 			getTileUpDown(true)
 		elif currentDirection == DIRECTION.DOWN:
+			$AnimationPlayer.play("Ladder")
 			getTileUpDown(false)
 			vel.y += speed
 			
-	var enemyX = int(self.position.x) / 64
-	var enemyY = int(self.position.y) / 64
-	var playerX = int(player.position.x) / 64
-	var playerY = int(player.position.y) / 64
+	var enemyX = int(self.position.x) / SIZE
+	var enemyY = int(self.position.y) / SIZE
+	var playerX = int(player.position.x) / SIZE
+	var playerY = int(player.position.y) / SIZE
 	
 	if changeXDirAt != -1:
 		
@@ -201,7 +206,7 @@ func _process(delta):
 				currentDirection = DIRECTION.DOWN
 			else:
 				currentDirection = DIRECTION.UP
-			self.position.x = enemyX * 64
+			self.position.x = enemyX * SIZE
 			changeXDirAt = -1
 			
 			return
@@ -314,10 +319,10 @@ func _on_Timer_timeout():
 	if not player || isFalling:
 		return
 		
-	var playerY = int(player.position.y) / 64
-	var enemyY = int(self.position.y) / 64
-	var playerX = int(player.position.x) / 64
-	var enemyX = int(self.position.x) / 64
+	var playerY = int(player.position.y) / SIZE
+	var enemyY = int(self.position.y) / SIZE
+	var playerX = int(player.position.x) / SIZE
+	var enemyX = int(self.position.x) / SIZE
 	
 	if playerY == enemyY:
 		changeXDirAt = -1

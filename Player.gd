@@ -15,6 +15,11 @@ var digTime: float = 0.25
 var digCount: float = 0.00
 var playerStartPos: Vector2 = Vector2()
 var tile: int = -1
+var isDead:bool = false
+const SIZE: int = 64
+const HALF_SIZE: int = SIZE / 2
+const QTR_SIZE: int = 14
+
 
 onready var sprite: Sprite = get_node("Sprite")
 onready var tilemap= get_parent().get_node("TileMap")
@@ -25,44 +30,29 @@ func digHole(isLeftDirection, digTileId):
 	if isOnLadder || isOnRails: # Can't Dig when on a ladder or rails
 		return
 	
-	var distanceAdjustment: int = 40 
-	var pos = self.position
-	var adjustBy = 1
-	var digAdjust = distanceAdjustment * 0.50
+	var x = int(self.position.x) / SIZE
+	var y = (int(self.position.y) / SIZE) + 1
 	
 	if isLeftDirection:
-		adjustBy = -1
-	
-	pos.y += distanceAdjustment
-	pos.x += digAdjust * adjustBy
-		
-	var tileVector = tilemap.world_to_map(pos)
-	var digTile = tilemap.get_cellv(tileVector)
-	var xDist = 0
-	
-	if isLeftDirection == true:
-		xDist = tilemap.map_to_world(tileVector).x - sprite.global_position.x
+		x -= 1
 	else:
-		xDist = sprite.global_position.x - tilemap.map_to_world(tileVector).x
-	
-	if (xDist < digAdjust):
-		pos.x += digAdjust * adjustBy
-		tileVector = tilemap.world_to_map(pos)
-		digTile = tilemap.get_cellv(tileVector)
+		x += 1
+		
+	var digTile = tilemap.get_cell(x, y)
 	
 	if digTile != TILE.FLOOR && digTile != TILE.HOLE_DMG1 && digTile != TILE.HOLE_DMG2:
 		return
 		
-	tilemap.set_cellv(tileVector, digTileId) # Dig Hole.
+	tilemap.set_cell(x, y,  digTileId) # Dig Hole.
 	
 	if (digTileId == TILE.SKY):
-		tilemap.addCellToHoleList(tileVector)
+		tilemap.addCellToHoleList(x, y)
 
 func getTileUpDown(isUp):
 	
 	var prevTile = tile
-	var x = int(self.position.x) / 64
-	var y = int(self.position.y) / 64
+	var x = int(self.position.x) / SIZE
+	var y = int(self.position.y) / SIZE
 	
 	if isFalling == true: # Make sure we did not collide with anything that has collisions on such as the floor or hole
 		if is_on_floor():
@@ -74,9 +64,7 @@ func getTileUpDown(isUp):
 		isOnRails = false
 		return
 	
-	if isUp:
-		y += 0
-	else:
+	if not isUp:
 		y += 1
 	
 	tile = tilemap.get_cell(x, y)
@@ -87,8 +75,7 @@ func getTileUpDown(isUp):
 		
 		if isGoingUp == false:
 			isGoingUp = true # We don't want to adjust adjus this values again
-			var remainder = int(self.position.y) % 64
-			self.position.y = int(self.position.y) + remainder + 6
+			self.position.y = (y * SIZE) + 8
 	
 	if isInHole == true:
 		isFalling = false
@@ -100,30 +87,34 @@ func getTileUpDown(isUp):
 			isOnLadder = false
 			isOnRails = false
 		else:
-			self.position.y = (y * 64) + 28
+			self.position.y = (y * SIZE) + 28
 			isFalling = false
 			isOnLadder = false
 			isOnRails = false
 	elif tile == TILE.LADDER: # LADDER
 		if isOnLadder == false:  # Only adjust if the first time on the ladder
-			self.position.x = (x * 64) + 32
+			self.position.x = (x * SIZE) + HALF_SIZE
 				
 		isFalling = false
 		isOnLadder = true
 		isOnRails = false
 	elif tile == TILE.RAILS: # RAILING
 		if (prevTile == TILE.SKY) && isFalling == true:  # Fell onto the railing
-			self.position.y = (y * 64) + 14
+			self.position.y = (y * SIZE) + QTR_SIZE
 		
 		isOnRails = true
 		isFalling = false
 		
 	elif tile == TILE.HOLE: #HOLE
 		if prevTile == TILE.SkY && isFalling == true:
-			self.position.y = (y * 64)  # Drop into the hole
+			self.position.y = (y * SIZE)  # Drop into the hole
 			isInHole = true
 	else:
-		self.position.y = (y * 64) - 32
+		if isFalling:
+			if !GLOBAL.get_node("sfx/sfx_fall").is_playing():
+				GLOBAL.get_node("sfx/sfx_fall").play()
+			
+		self.position.y = (y * SIZE) - HALF_SIZE
 		isFalling = false
 		isOnLadder = false
 		isOnRails = false
@@ -131,35 +122,35 @@ func getTileUpDown(isUp):
 func getTileLeftRight(isLeft):
 	var prevTile = tile
 	
-	var x = int(self.position.x) / 64
-	var y = int(self.position.y) / 64
+	var x = int(self.position.x) / SIZE
+	var y = int(self.position.y) / SIZE
 	
 	tile = tilemap.get_cell(x, y)
 	
 	if tile == TILE.RAILS: # RAILS
-		self.position.y = (y * 64) + 14
+		self.position.y = (y * SIZE) + QTR_SIZE
 			
 		isFalling = false
 		isOnLadder= false
 		isOnRails = true
 		return
 		
-	if tile == TILE.FLOOR:
-		var adjustedY = (y * 64) + 32
-	
-		if (float(adjustedY) != position.y):
-			self.position.y = (y * 64) + 32
-	
 	if isOnLadder == false && isOnRails == false:
 		y += 1
 		
 	tile = tilemap.get_cell(x, y)
 	
+	if tile == TILE.FLOOR:
+		var adjustedY = (y * SIZE) - HALF_SIZE
+	
+		if float(adjustedY) != self.position.y:
+			self.position.y = adjustedY
+	
 	if prevTile == TILE.LADDER && tile == TILE.SKY:
 		if isLeft:
-			self.position.x -= 32
+			self.position.x -= HALF_SIZE
 		else:
-			self.position.x += 32
+			self.position.x += HALF_SIZE
 		
 		isFalling = true
 		return
@@ -181,16 +172,14 @@ func getTileLeftRight(isLeft):
 		isOnRails = false
 		
 	if tile == TILE.RAILS: # RAILS
-		self.position.y = (y * 64)
+		self.position.y = (y * SIZE)
 			
 		isFalling = false
 		isOnLadder= false
 		isOnRails = true
 		
-	
-		
 	if tile == TILE.HOLE: # HOLE	
-		self.position.y = (y * 64)
+		self.position.y = (y * SIZE)
 		
 		isInHole = true
 		isFalling = true
@@ -201,6 +190,7 @@ func getTileLeftRight(isLeft):
 func _ready():
 	timer.wait_time = digTime
 	playerStartPos = self.position
+	GLOBAL.restart_scene()
 	pass # Replace with function body.	
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -209,6 +199,21 @@ func _process(delta):
 	vel.x = 0
 	vel.y = 0
 	
+	for i in get_slide_count():
+		var collision = get_slide_collision(i)
+		if collision && collision.collider.name == 'Enemy' && not isDead:
+			self.hide()
+			isDead = true
+			print("hit")
+			GLOBAL.player_dead()
+			yield(get_tree().create_timer(1), "timeout")
+			
+			GLOBAL.restart_scene()
+			yield(get_tree().create_timer(0.60), "timeout")
+			self.position = playerStartPos
+			self.show()
+			isDead = false
+		
 	if isFalling == true:
 		getTileUpDown(false)
 		vel.y += speed
@@ -224,6 +229,8 @@ func _process(delta):
 					$AnimationPlayer.play("Ladder Right")
 				else:
 					$AnimationPlayer.play("RightDirection")
+					if !GLOBAL.get_node("sfx/sfx_walk").is_playing():
+						GLOBAL.get_node("sfx/sfx_walk").play()
 			elif Input.is_action_pressed("ui_left"):
 				getTileLeftRight(true)
 				isGoingLeft = true
@@ -232,9 +239,14 @@ func _process(delta):
 					$AnimationPlayer.play("Rails Left")
 				elif isOnLadder:
 					$AnimationPlayer.play("Ladder Left")
+					
 				else:
 					$AnimationPlayer.play("LeftDirection")
+					if !GLOBAL.get_node("sfx/sfx_walk").is_playing():
+						GLOBAL.get_node("sfx/sfx_walk").play()
 			elif Input.is_action_pressed("ui_down"):
+				if !GLOBAL.get_node("sfx/sfx_ladder").is_playing() && isOnLadder:
+					GLOBAL.get_node("sfx/sfx_ladder").play()
 				isGoingUp = false
 				getTileUpDown(false)
 				
@@ -243,6 +255,9 @@ func _process(delta):
 					$AnimationPlayer.play("DownDirection")
 
 			elif Input.is_action_pressed("ui_up"):
+				if !GLOBAL.get_node("sfx/sfx_ladder").is_playing() && isOnLadder:
+					GLOBAL.get_node("sfx/sfx_ladder").play()
+				
 				isGoingUp = true
 				getTileUpDown(true)
 				
@@ -301,8 +316,8 @@ func _on_Timer_timeout():
 
 
 func _on_TileMap_onHoldReset():
-	var x = int(self.position.x) / 64
-	var y = int(self.position.y) / 64
+	var x = int(self.position.x) / SIZE
+	var y = int(self.position.y) / SIZE
 	var playerOnTile = tilemap.get_cell(x, y)
 	
 	if (playerOnTile == TILE.FLOOR):

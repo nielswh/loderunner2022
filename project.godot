@@ -18,6 +18,10 @@ config/name="loderunner"
 run/main_scene="res://LoadRunner.tscn"
 config/icon="res://icon.png"
 
+[autoload]
+
+GLOBAL="*res://scenes/_Global.tscn"
+
 [display]
 
 window/size/width=2048
